@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Event Eye — Delivery Status</title>
+    <style>
+        :root{--accent:#6a5cff;--accent-2:#2bb7f6;--muted:#6b7280;--card:#fff}
+        *{box-sizing:border-box}
+        body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;background:linear-gradient(180deg,#f6f9ff 0,#eef7ff 100%);margin:0;color:#0f172a}
+        header{background:linear-gradient(135deg,var(--accent) 0,var(--accent-2) 100%);padding:20px 16px;color:white}
+        .container{max-width:1100px;margin:20px auto;padding:0 16px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:56px;height:56px;border-radius:10px;background:rgba(255,255,255,0.12);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+    .logo-img{width:48px;height:48px;object-fit:contain}
+    .logo-fallback{font-weight:800;color:white}
+        h1{margin:0}
+
+        .card{background:var(--card);border-radius:12px;padding:20px;margin-top:-24px;box-shadow:0 6px 24px rgba(16,24,40,0.06)}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:12px 10px;text-align:left;border-bottom:1px solid #eef3ff}
+        th{color:var(--muted);font-size:13px}
+
+        .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:600;font-size:13px}
+        .badge.sent{background:rgba(43,163,100,0.12);color:#2ba364}
+        .badge.failed{background:rgba(255,77,79,0.08);color:#ff4d4f}
+        .badge.generated{background:rgba(106,92,255,0.08);color:var(--accent)}
+
+        .actions a{color:var(--accent);text-decoration:none;font-weight:600}
+        .top-actions{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+
+        @media(max-width:800px){th,td{padding:10px 6px}.top-actions{flex-direction:column;gap:8px}}
+    </style>
+    <style>
+        /* Small-screen: make each row a card */
+        @media (max-width:600px) {
+            table, thead, tbody, th, td, tr {display:block}
+            thead {display:none}
+            tr.result-row {margin-bottom:12px;border-radius:10px;background:white;box-shadow:0 6px 18px rgba(16,24,40,0.04);padding:12px}
+            tr.result-row td {display:block;padding:6px 0;border-bottom:none}
+            tr.result-row td:nth-child(1)::before{content:'Name: ';font-weight:700}
+            tr.result-row td:nth-child(2)::before{content:'Email: ';font-weight:700}
+            tr.result-row td:nth-child(3)::before{content:'Certificate: ';font-weight:700}
+            tr.result-row td:nth-child(4)::before{content:'Cert Status: ';font-weight:700}
+            tr.result-row td:nth-child(5)::before{content:'Email Status: ';font-weight:700}
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="brand">
+                <div class="logo">
+                    <img src="{{ url_for('static', filename='logo.png') }}" alt="Event Eye" class="logo-img" onerror="this.style.display='none'">
+                    <span class="logo-fallback">EE</span>
+                </div>
+                <div>
+                    <h1>Event Eye</h1>
+                    <div style="opacity:.9">Certificate Delivery Status</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <div class="top-actions">
+                <div><strong>Delivery Results</strong><div style="color:var(--muted);font-size:13px">Per-participant certificate and email status</div></div>
+                <div class="actions"><a href="/">← Generate More</a></div>
+            </div>
+
+            <div style="overflow:auto">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Certificate</th>
+                        <th>Certificate Status</th>
+                        <th>Email Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr class="result-row" data-name="{{ result.name }}" data-email="{{ result.email }}" data-cert="{% if result.cert_filename %}{{ url_for('serve_certificate', filename=result.cert_filename) }}{% else %}-{% endif %}" data-cert-status="{{ result.cert_status }}" data-email-status="{{ result.email_status }}">
+                        <td>{{ result.name }}</td>
+                        <td>{{ result.email }}</td>
+                        <td>
+                            {% if result.cert_filename %}
+                                <a href="{{ url_for('serve_certificate', filename=result.cert_filename) }}">Download</a>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.cert_status == 'Generated' %}
+                                <span class="badge generated">Generated</span>
+                            {% else %}
+                                <span class="badge failed">{{ result.cert_status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if result.email_status == 'Sent' %}
+                                <span class="badge sent">Sent</span>
+                            {% else %}
+                                <span class="badge failed">{{ result.email_status }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+        </div>
+    </main>
+</body>
+</html>
