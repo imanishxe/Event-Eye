@@ -134,19 +134,22 @@ SENDER_EMAIL = os.getenv('SENDER_EMAIL')
 SENDER_PASSWORD = os.getenv('SENDER_PASSWORD')
 
 if not SENDER_EMAIL or not SENDER_PASSWORD:
-    print("Warning: SENDER_EMAIL or SENDER_PASSWORD not set as environment variables. Email sending will fail unless these are provided.")
+    print("Note: global SENDER_EMAIL or SENDER_PASSWORD not set. You can enter credentials on the upload page for each run.")
 
+def send_email(recipient_email: str, certificate_path: str, sender_email: str = None, sender_password: str = None) -> str:
+    """Sends an email with the certificate attached using provided per-request credentials.
+    Falls back to environment variables if per-request values are not provided.
+    Returns 'Sent' or a failure message."""
+    use_email = sender_email or SENDER_EMAIL
+    use_password = sender_password or SENDER_PASSWORD
 
-def send_email(recipient_email: str, certificate_path: str) -> str:
-    """Sends an email with the certificate attached. Returns 'Sent' or 'Failed'."""
-    # Preflight: check credentials
-    if not SENDER_EMAIL or not SENDER_PASSWORD:
-        msg = f'Failed: missing SMTP credentials (set SENDER_EMAIL and SENDER_PASSWORD environment variables)'
+    if not use_email or not use_password:
+        msg = 'Failed: missing SMTP credentials (provide them in the upload form or set SENDER_EMAIL/SENDER_PASSWORD env vars)'
         print(msg)
         return msg
 
     msg = MIMEMultipart()
-    msg['From'] = SENDER_EMAIL
+    msg['From'] = use_email
     msg['To'] = recipient_email
     msg['Subject'] = 'Your Certificate of Completion!'
 
@@ -171,10 +174,10 @@ def send_email(recipient_email: str, certificate_path: str) -> str:
         server.ehlo()
         server.starttls()
         server.ehlo()
-        server.login(SENDER_EMAIL, SENDER_PASSWORD)
-        server.sendmail(SENDER_EMAIL, recipient_email, msg.as_string())
+        server.login(use_email, use_password)
+        server.sendmail(use_email, recipient_email, msg.as_string())
         server.quit()
-        print(f"Email sent to {recipient_email}")
+        print(f"Email sent to {recipient_email} via {use_email}")
         return 'Sent'
     except Exception as e:
         err = f'Failed: SMTP error: {e}'
@@ -193,6 +196,10 @@ def upload_file():
     file = request.files.get('participant_file')
     if not file or not file.filename.lower().endswith('.csv'):
         return "Please upload a valid CSV file."
+
+    # Read optional per-request sender credentials from the form
+    sender_email_form = request.form.get('sender_email') or None
+    sender_password_form = request.form.get('sender_password') or None
 
     try:
         participants = pd.read_csv(file)
@@ -221,8 +228,8 @@ def upload_file():
             results.append({'name': name, 'email': email, 'cert_filename': None, 'cert_status': f'Certificate error: {e}', 'email_status': 'Skipped'})
             continue
 
-        # 2) Send email (synchronous). For large batches consider background jobs.
-        email_status = send_email(email, cert_path)
+        # 2) Send email using form credentials if provided (synchronous).
+        email_status = send_email(email, cert_path, sender_email=sender_email_form, sender_password=sender_password_form)
 
         results.append({'name': name, 'email': email, 'cert_filename': cert_filename, 'cert_status': cert_status, 'email_status': email_status})
 
@@ -231,6 +238,7 @@ def upload_file():
 
 # --- STEP 4: RUN THE WEB SERVER ---
 if __name__ == '__main__':
-    # Bind to 0.0.0.0 so mobile devices on the same network can reach the server.
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=True)
 

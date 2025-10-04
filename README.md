@@ -2,7 +2,19 @@
 
 A small Flask app that generates event certificates from a CSV of participants, embeds a QR for verification, and optionally emails the certificate to participants.
 
-This repository is arranged as a simple showcase for hackathon judges. It includes a polished UI (Event Eye) with a Certificate Generator section and a responsive Dashboard to monitor delivery status.
+## Demo & sending emails
+
+- GitHub: https://github.com/<your-username>/<repo-name>
+- Live (Render): https://event-eye-mvfg.onrender.com
+
+On the upload page you can optionally enter the sending email and an "App Password" (for Gmail) — these credentials are used only for that request and are NOT stored in the server.
+
+How to create a Gmail App Password:
+1. Go to Google Account → Security → App passwords.
+2. Create a password for Mail (choose "Other" for device) and copy the 16-character string.
+3. Paste the 16-character app password into the "App password" field on the upload page.
+
+Security note: prefer using a dedicated app password and do not commit credentials to the repo. You can also set SENDER_EMAIL and SENDER_PASSWORD as environment variables on your host (Render) if you want server-global sending without entering credentials each upload.
 
 ## Features
 - Upload a CSV (Name, Email) to generate certificates using a template image.
